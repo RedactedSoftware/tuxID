@@ -105,12 +105,12 @@ std::string tuxID::getDiskSerialCode()  {
     }
     if (0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)) {
 	std::cout << "Failed to open disk " << std::endl;
-	exit(1);
+	return "unavailable";
     }
     device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
     if (NULL == device) {
        	std::cout << "Failed to open disk"<< std::endl;
-        exit(1);
+        return "unavailable";
     }
 
     entry = udev_device_get_properties_list_entry(device);
