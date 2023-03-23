@@ -129,22 +129,34 @@ std::string tuxID::getDiskSerialCode()  {
 bool tuxID::isVirtualMachine() {
     // Check if the system responds to queries about known Virtual Machine modules.
     // If these modules are nonexistant on the system, nothing will be returned.
+
+    // Check for Virtio Module
+    // https://developer.ibm.com/articles/l-virtio/
     if (tuxID::shellCommandReturns("lsmod | grep virtio"))
         return 1;
+    // Check for VirtualBox Module
+    // https://www.virtualbox.org/manual/UserManual.html#additions-linux
     if (tuxID::shellCommandReturns("lsmod | grep vboxguest"))
         return 1;
+    // Check for  VMWare Guest Graphics Module
     if (tuxID::shellCommandReturns("lsmod | grep vmwgfx"))
         return 1;
+    // Check for Cirrus CI Module
     if(tuxID::shellCommandReturns("lsmod | grep cirrus"))
         return 1;
+    // Check for VirtualBox Video Module
     if(tuxID::shellCommandReturns("lsmod | grep vboxvideo"))
         return 1;
+    // Check for QEMU module
     if(tuxID::shellCommandReturns("lsmod | grep qemu"))
         return 1;
+    // Check for virtualized filesystem
     if (tuxID::shellCommandReturns("cat /etc/fstab | grep /dev/vda"))
         return 1;
+    // Poke the "BIOS" "ROM" To check for KVM Tag
     if (tuxID::probeDmiData("KVM"))
         return 1;
+    // Poke the "BIOS" "ROM" To check for VirtualBox Tag
     if (tuxID::probeDmiData("VirtualBox"))
         return 1;
 
