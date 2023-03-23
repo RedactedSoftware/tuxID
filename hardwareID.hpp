@@ -19,7 +19,7 @@
 // Further Considerations: hardware changes slowly over time, but hashes
 
 // LICENSE //
-// MIT probably
+// MIT
 
 // SAMPLES //
 
