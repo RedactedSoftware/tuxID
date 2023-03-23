@@ -1,3 +1,28 @@
+////////////////////////////////////////////////
+// Hardware ID - Know Who You're Dealing With //
+// @auth William J. Tomasine II, Josh O'Leary //
+
+// ABSTRACT //
+// This module facilitates uniquely identifying devices via reading hardware information.
+// Such as peripherial serial numbers, drive configurations, component specs.
+// In this specific implementation case, for x86 desktops running Linux.
+//
+// A Hardware Profile is a structure, containing fields for each Hardware Token collected.
+// A Hardware Hash is generated via concatenating the Hardware Profile fields
+// into one string, and feeding that to a standard cryptographic hashing algorithm.
+//
+// This hash uniquely identifies the device, without presenting a privacy hazard to the device owner.
+// Use cases:
+// Prevent MultiAccounting in online games.
+// Detect end-users running VPNs, Virtual Machines etc.
+//
+// Further Considerations: hardware changes slowly over time, but hashes
+
+// LICENSE //
+// MIT probably
+
+// SAMPLES //
+
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
@@ -8,8 +33,43 @@
 #include <sys/stat.h>
 
 
+namespace Stepbro::HardwareID
+{
 
-const char* diskSerial()  {
+    struct HardwareProfile
+    {
+        std::string diskSerialCode;
+    };
+
+
+    HardwareProfile getCurrentHardwareProfile();
+    std::string getHardwareHash(HardwareProfile);
+    std::string getHardwareHash();
+    std::string getDiskSerialCode(std::string);
+    bool getIsLikelyVirtualMachine();
+    bool getIsDefinitelyVirtualMachine();
+    bool isVirtualMachine();
+
+}
+int load_udev() {}
+int udev_error() { }
+bool hasDisk(const char* disk) {
+	struct udev *ud = NULL;
+	struct stat statbuf;
+	struct udev_device *device = NULL;
+	struct udev_list_entry *entry = NULL;
+
+	ud = udev_new();
+	if (NULL == ud) { udev_error(); exit(1); }
+
+	if (0 != stat(disk, &statbuf)) {
+		std::cout << "Failed to stat " << disk << std::endl;
+	}
+	device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
+}
+bool hasSDAFilesystem() {}
+// disk = "/dev/sda"
+std::string Stepbro::HardwareID::getDiskSerialCode(std::string disk)  {
     struct udev *ud = NULL;
     struct stat statbuf;
     struct udev_device *device = NULL;
@@ -20,13 +80,15 @@ const char* diskSerial()  {
         fprintf(stderr, "Failed to init udev.\n");
         exit(1);
     }
-    if (0 != stat("/dev/sda", &statbuf)) {
-        fprintf(stderr, "Failed to stat /dev/sda.\n");
-        exit(1);
+    // TODO: Detect drive type
+    // IDE drives are /dev/hda /dev/mmcblk /dev/nvme
+    if (0 != stat(disk.c_str(), &statbuf)) {
+	std::cout << "Failed to open disk " << disk << std::endl;
+	exit(1);
     }
     device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
     if (NULL == device) {
-        fprintf(stderr, "Failed to open /dev/sda.\n");
+       	std::cout << "Failed to open " << disk << std::endl;
         exit(1);
     }
 
@@ -40,10 +102,10 @@ const char* diskSerial()  {
         entry = udev_list_entry_get_next(entry);
     }
     //printf(udev_list_entry_get_value(entry));
-    return udev_list_entry_get_value(entry);
+    return std::string(udev_list_entry_get_value(entry));
 }
 
-bool isVirtualMachine() {
+bool Stepbro::HardwareID::isVirtualMachine() {
     //modprobe for virtio
     FILE *fd = popen("lsmod | grep virtio", "r");
     char buf[16];
@@ -52,8 +114,8 @@ bool isVirtualMachine() {
     }
 
     //modprobe for virtio
-    FILE *fd = popen("cat /etc/fstab | grep vda", "r");
-    char buf[16];
+    fd = popen("cat /etc/fstab | grep vda", "r");
+    buf[16];
     if (fread (buf, 1, sizeof (buf), fd) > 0) {
         return 1;
     }
