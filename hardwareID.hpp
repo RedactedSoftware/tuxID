@@ -47,7 +47,7 @@ namespace tuxID
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
     std::string getDiskSerialCode();
-    bool probeDmiData(std::string string);
+    bool scanDMIData(std::string string);
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
@@ -62,7 +62,7 @@ bool tuxID::isSuperUser() {
     return 0;
 }
 
-bool tuxID::probeDmiData(const std::string string) {
+bool tuxID::scanDMIData(const std::string string) {
     if (!isSuperUser())
         return 0;
     std::string command = "dmidecode | grep ";
@@ -85,8 +85,10 @@ bool tuxID::shellCommandReturns(const char* command) {
         return 1;
     }
 }
-bool tuxID::shellCommandReturns(const std::string command) {return tuxID::shellCommandReturns(command.c_str());}
-// disk = "/dev/sda"
+bool tuxID::shellCommandReturns(const std::string command) {
+    return tuxID::shellCommandReturns(command.c_str());
+}
+
 std::string tuxID::getDiskSerialCode()  {
     struct udev *ud = NULL;
     struct stat statbuf;
@@ -96,21 +98,20 @@ std::string tuxID::getDiskSerialCode()  {
     ud = udev_new();
     if (NULL == ud) {
         fprintf(stderr, "Failed to init udev.\n");
-        exit(1);
+        return "unavailable";
     }
-    // TODO: Detect drive type
-    // IDE drives are /dev/hda /dev/mmcblk /dev/nvme
+    // TODO: Detect drive type.
     std::string diskTypes[5] = {"/dev/sda", "/dev/hda", "/dev/mmcblk0", "/dev/nvme0"};
     int arrayPosition = 0;
     while(0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)){
         arrayPosition = arrayPosition + 1;
     }
     if (0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)) {
-	return "unavailable.";
+	return "unavailable";
     }
     device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
     if (NULL == device) {
-        return "unavailable.";
+        return "unavailable";
     }
 
     entry = udev_device_get_properties_list_entry(device);
@@ -128,7 +129,7 @@ std::string tuxID::getDiskSerialCode()  {
 
 bool tuxID::isVirtualMachine() {
     // Check if the system responds to queries about known Virtual Machine modules.
-    // If these modules are nonexistant on the system, nothing will be returned.
+    // If these modules are nonexistent on the system, we will return 0.
     if (tuxID::shellCommandReturns("lsmod | grep virtio"))
         return 1;
     if (tuxID::shellCommandReturns("lsmod | grep vboxguest"))
@@ -143,9 +144,9 @@ bool tuxID::isVirtualMachine() {
         return 1;
     if (tuxID::shellCommandReturns("cat /etc/fstab | grep /dev/vda"))
         return 1;
-    if (tuxID::probeDmiData("KVM"))
+    if (tuxID::scanDMIData("KVM"))
         return 1;
-    if (tuxID::probeDmiData("VirtualBox"))
+    if (tuxID::scanDMIData("VirtualBox"))
         return 1;
 
 
