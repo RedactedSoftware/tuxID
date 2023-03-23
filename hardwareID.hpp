@@ -132,6 +132,10 @@ bool tuxID::isVirtualMachine() {
         return 1;
     if (tuxID::shellCommandReturns("lsmod | grep vmwgfx"))
         return 1;
+    if(tuxID::shellCommandReturns("lsmod | grep cirrus"))
+        return 1;
+    if(tuxID::shellCommandReturns("lsmod | grep qemu"))
+        return 1;
     if (tuxID::shellCommandReturns("cat /etc/fstab | grep /dev/vda"))
         return 1;
 
