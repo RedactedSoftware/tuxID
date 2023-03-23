@@ -45,7 +45,7 @@ namespace tuxID
     HardwareProfile getCurrentHardwareProfile();
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
-    std::string getDiskSerialCode(std::string);
+    std::string getDiskSerialCode();
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
@@ -67,9 +67,8 @@ bool hasDisk(const char* disk) {
 	}
 	device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
 }
-bool hasSDAFilesystem() {}
 // disk = "/dev/sda"
-std::string tuxID::getDiskSerialCode(std::string disk)  {
+std::string tuxID::getDiskSerialCode()  {
     struct udev *ud = NULL;
     struct stat statbuf;
     struct udev_device *device = NULL;
@@ -82,13 +81,18 @@ std::string tuxID::getDiskSerialCode(std::string disk)  {
     }
     // TODO: Detect drive type
     // IDE drives are /dev/hda /dev/mmcblk /dev/nvme
-    if (0 != stat(disk.c_str(), &statbuf)) {
-	std::cout << "Failed to open disk " << disk << std::endl;
+    std::string diskTypes[4] = {"/dev/sda", "/dev/hda", "/dev/mmcblk0", "/dev/nvme0"};
+    int arrayPosition = 0;
+    while(0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)){
+        arrayPosition = arrayPosition + 1;
+    }
+    if (0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)) {
+	std::cout << "Failed to open disk " << std::endl;
 	exit(1);
     }
     device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
     if (NULL == device) {
-       	std::cout << "Failed to open " << disk << std::endl;
+       	std::cout << "Failed to open disk"<< std::endl;
         exit(1);
     }
 
