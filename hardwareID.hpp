@@ -53,7 +53,7 @@ namespace tuxID
     bool isVirtualMachine();
     bool isSuperUser();
     bool shellCommandReturns(const char* command);
-
+    bool shellCommandReturns(const std::string);
 }
 
 bool tuxID::isSuperUser() {
@@ -74,6 +74,10 @@ bool tuxID::probeDmiData(const std::string string) {
     }
     return 0;
 }
+
+
+// Runs a shell command & returns 1 if the command returns any result
+// Returns 0 if the command returns nothing
 bool tuxID::shellCommandReturns(const char* command) {
     FILE *shellCommand = popen(command, "r");
     char buf[16];
@@ -81,6 +85,7 @@ bool tuxID::shellCommandReturns(const char* command) {
         return 1;
     }
 }
+bool tuxID::shellCommandReturns(const std::string command) {return tuxID::shellCommandReturns(command.c_str());}
 // disk = "/dev/sda"
 std::string tuxID::getDiskSerialCode()  {
     struct udev *ud = NULL;
@@ -121,27 +126,9 @@ std::string tuxID::getDiskSerialCode()  {
     return std::string(udev_list_entry_get_value(entry));
 }
 
-// modprobe for virtio
-bool probeVirtIO()
-{
-
-    FILE *fd = popen("lsmod | grep virtio", "r");
-    char buf[16];
-    if (fread (buf, 1, sizeof (buf), fd) > 0) {
-        return 1;
-    }
-}
-
-bool probeFstab()
-{
-    FILE *fd = popen("cat /etc/fstab | grep vda", "r");
-    char buf[16];
-    if (fread (buf, 1, sizeof (buf), fd) > 0) {
-        return 1;
-    }
-}
-
 bool tuxID::isVirtualMachine() {
+    // Check if the system responds to queries about known Virtual Machine modules.
+    // If these modules are nonexistant on the system, nothing will be returned.
     if (tuxID::shellCommandReturns("lsmod | grep virtio"))
         return 1;
     if (tuxID::shellCommandReturns("lsmod | grep vboxguest"))
