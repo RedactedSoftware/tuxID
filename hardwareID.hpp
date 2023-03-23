@@ -33,7 +33,7 @@
 #include <sys/stat.h>
 
 
-namespace Stepbro::HardwareID
+namespace tuxID
 {
 
     struct HardwareProfile
@@ -69,7 +69,7 @@ bool hasDisk(const char* disk) {
 }
 bool hasSDAFilesystem() {}
 // disk = "/dev/sda"
-std::string Stepbro::HardwareID::getDiskSerialCode(std::string disk)  {
+std::string tuxID::getDiskSerialCode(std::string disk)  {
     struct udev *ud = NULL;
     struct stat statbuf;
     struct udev_device *device = NULL;
@@ -105,7 +105,7 @@ std::string Stepbro::HardwareID::getDiskSerialCode(std::string disk)  {
     return std::string(udev_list_entry_get_value(entry));
 }
 
-bool Stepbro::HardwareID::isVirtualMachine() {
+bool tuxID::isVirtualMachine() {
     //modprobe for virtio
     FILE *fd = popen("lsmod | grep virtio", "r");
     char buf[16];
