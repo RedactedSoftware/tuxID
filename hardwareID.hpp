@@ -51,6 +51,7 @@ namespace tuxID
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
     bool isSuperUser();
+    bool shellCommandReturns(const char* command);
 
 }
 int load_udev() {}
@@ -73,6 +74,14 @@ bool hasDisk(const char* disk) {
 bool tuxID::isSuperUser() {
     if (getuid() == 0)
         return 1;
+}
+
+bool tuxID::shellCommandReturns(const char* command) {
+    FILE *shellCommand = popen(command, "r");
+    char buf[16];
+    if (fread (buf, 1, sizeof (buf), shellCommand) > 0) {
+        return 1;
+    }
 }
 // disk = "/dev/sda"
 std::string tuxID::getDiskSerialCode()  {
@@ -115,21 +124,16 @@ std::string tuxID::getDiskSerialCode()  {
     //printf(udev_list_entry_get_value(entry));
     return std::string(udev_list_entry_get_value(entry));
 }
+
 bool tuxID::isVirtualMachine() {
-    //modprobe for virtio
-    FILE *fd = popen("lsmod | grep virtio", "r");
-    char buf[16];
-    if (fread (buf, 1, sizeof (buf), fd) > 0) {
+    if (tuxID::shellCommandReturns("lsmod | grep virtio"))
         return 1;
-    }
-
-    //modprobe for virtio
-    fd = popen("cat /etc/fstab | grep vda", "r");
-    buf[16];
-    if (fread (buf, 1, sizeof (buf), fd) > 0) {
+    if (tuxID::shellCommandReturns("lsmod | grep vboxguest"))
         return 1;
-    }
-
+    if (tuxID::shellCommandReturns("lsmod | grep vmwgfx"))
+        return 1;
+    if (tuxID::shellCommandReturns("cat /etc/fstab | grep /dev/vda"))
+        return 1;
 
     return 0;
 }
