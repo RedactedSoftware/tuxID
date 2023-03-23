@@ -47,6 +47,7 @@ namespace tuxID
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
     std::string getDiskSerialCode();
+    bool probeDmiData(std::string string);
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
@@ -77,6 +78,18 @@ bool tuxID::isSuperUser() {
     return 0;
 }
 
+bool tuxID::probeDmiData(const std::string string) {
+    if (!isSuperUser())
+        return 0;
+    std::string command = "dmidecode | grep ";
+    command = command.append(string);
+    FILE *shellCommand = popen(command.c_str(), "r");
+    char buf[16];
+    if (fread (buf, 1, sizeof (buf), shellCommand) > 0) {
+        return 1;
+    }
+    return 0;
+}
 bool tuxID::shellCommandReturns(const char* command) {
     FILE *shellCommand = popen(command, "r");
     char buf[16];
@@ -133,10 +146,15 @@ bool tuxID::isVirtualMachine() {
         return 1;
     if(tuxID::shellCommandReturns("lsmod | grep cirrus"))
         return 1;
+    if(tuxID::shellCommandReturns("lsmod | grep vboxvideo"))
+        return 1;
     if(tuxID::shellCommandReturns("lsmod | grep qemu"))
         return 1;
     if (tuxID::shellCommandReturns("cat /etc/fstab | grep /dev/vda"))
         return 1;
-
+    if (tuxID::probeDmiData("KVM"))
+        return 1;
+    if (tuxID::probeDmiData("VirtualBox"))
+        return 1;
     return 0;
 }
