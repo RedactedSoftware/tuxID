@@ -31,6 +31,7 @@
 #include <libudev.h>
 #include <sys/stat.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 
 namespace tuxID
@@ -49,6 +50,7 @@ namespace tuxID
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
+    bool isSuperUser();
 
 }
 int load_udev() {}
@@ -66,6 +68,11 @@ bool hasDisk(const char* disk) {
 		std::cout << "Failed to stat " << disk << std::endl;
 	}
 	device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
+}
+
+bool tuxID::isSuperUser() {
+    if (getuid() == 0)
+        return 1;
 }
 // disk = "/dev/sda"
 std::string tuxID::getDiskSerialCode()  {
@@ -108,7 +115,6 @@ std::string tuxID::getDiskSerialCode()  {
     //printf(udev_list_entry_get_value(entry));
     return std::string(udev_list_entry_get_value(entry));
 }
-
 bool tuxID::isVirtualMachine() {
     //modprobe for virtio
     FILE *fd = popen("lsmod | grep virtio", "r");
