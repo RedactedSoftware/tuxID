@@ -53,28 +53,13 @@ namespace tuxID
     bool isSuperUser();
 
 }
-int load_udev() {}
-int udev_error() { }
-bool hasDisk(const char* disk) {
-	struct udev *ud = NULL;
-	struct stat statbuf;
-	struct udev_device *device = NULL;
-	struct udev_list_entry *entry = NULL;
-
-	ud = udev_new();
-	if (NULL == ud) { udev_error(); exit(1); }
-
-	if (0 != stat(disk, &statbuf)) {
-		std::cout << "Failed to stat " << disk << std::endl;
-	}
-	device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
-}
 
 bool tuxID::isSuperUser() {
     if (getuid() == 0)
         return 1;
 }
-// disk = "/dev/sda"
+
+
 std::string tuxID::getDiskSerialCode()  {
     struct udev *ud = NULL;
     struct stat statbuf;
@@ -115,20 +100,34 @@ std::string tuxID::getDiskSerialCode()  {
     //printf(udev_list_entry_get_value(entry));
     return std::string(udev_list_entry_get_value(entry));
 }
-bool tuxID::isVirtualMachine() {
-    //modprobe for virtio
+
+// modprobe for virtio
+bool probeVirtIO()
+{
+
     FILE *fd = popen("lsmod | grep virtio", "r");
     char buf[16];
     if (fread (buf, 1, sizeof (buf), fd) > 0) {
         return 1;
     }
+}
 
-    //modprobe for virtio
-    fd = popen("cat /etc/fstab | grep vda", "r");
-    buf[16];
+bool probeFstab()
+{
+    FILE *fd = popen("cat /etc/fstab | grep vda", "r");
+    char buf[16];
     if (fread (buf, 1, sizeof (buf), fd) > 0) {
         return 1;
     }
+}
+
+bool tuxID::isVirtualMachine() {
+
+    auto virtio_probe_result = probeVirtIO();
+    if (virtio_probe_result > 0) {return 1;}
+
+    //modprobe for virtio
+
 
 
     return 0;
