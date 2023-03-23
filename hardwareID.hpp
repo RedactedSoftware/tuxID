@@ -74,6 +74,7 @@ bool hasDisk(const char* disk) {
 bool tuxID::isSuperUser() {
     if (getuid() == 0)
         return 1;
+    return 0;
 }
 
 bool tuxID::shellCommandReturns(const char* command) {
@@ -97,7 +98,7 @@ std::string tuxID::getDiskSerialCode()  {
     }
     // TODO: Detect drive type
     // IDE drives are /dev/hda /dev/mmcblk /dev/nvme
-    std::string diskTypes[5] = {"/dev/sda", "/dev/hda", "/dev/vda", "/dev/mmcblk0", "/dev/nvme0"};
+    std::string diskTypes[5] = {"/dev/sda", "/dev/hda", "/dev/mmcblk0", "/dev/nvme0"};
     int arrayPosition = 0;
     while(0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)){
         arrayPosition = arrayPosition + 1;
