@@ -47,19 +47,41 @@ namespace tuxID
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
     std::string getDiskSerialCode();
+    bool probeDmiData(std::string string);
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
     bool isSuperUser();
+    bool shellCommandReturns(const char* command);
 
 }
 
 bool tuxID::isSuperUser() {
     if (getuid() == 0)
         return 1;
+    return 0;
 }
 
-
+bool tuxID::probeDmiData(const std::string string) {
+    if (!isSuperUser())
+        return 0;
+    std::string command = "dmidecode | grep ";
+    command = command.append(string);
+    FILE *shellCommand = popen(command.c_str(), "r");
+    char buf[16];
+    if (fread (buf, 1, sizeof (buf), shellCommand) > 0) {
+        return 1;
+    }
+    return 0;
+}
+bool tuxID::shellCommandReturns(const char* command) {
+    FILE *shellCommand = popen(command, "r");
+    char buf[16];
+    if (fread (buf, 1, sizeof (buf), shellCommand) > 0) {
+        return 1;
+    }
+}
+// disk = "/dev/sda"
 std::string tuxID::getDiskSerialCode()  {
     struct udev *ud = NULL;
     struct stat statbuf;
@@ -73,19 +95,17 @@ std::string tuxID::getDiskSerialCode()  {
     }
     // TODO: Detect drive type
     // IDE drives are /dev/hda /dev/mmcblk /dev/nvme
-    std::string diskTypes[4] = {"/dev/sda", "/dev/hda", "/dev/mmcblk0", "/dev/nvme0"};
+    std::string diskTypes[5] = {"/dev/sda", "/dev/hda", "/dev/mmcblk0", "/dev/nvme0"};
     int arrayPosition = 0;
     while(0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)){
         arrayPosition = arrayPosition + 1;
     }
     if (0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)) {
-	std::cout << "Failed to open disk " << std::endl;
-	exit(1);
+	return "unavailable.";
     }
     device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
     if (NULL == device) {
-       	std::cout << "Failed to open disk"<< std::endl;
-        exit(1);
+        return "unavailable.";
     }
 
     entry = udev_device_get_properties_list_entry(device);
@@ -122,12 +142,24 @@ bool probeFstab()
 }
 
 bool tuxID::isVirtualMachine() {
-
-    auto virtio_probe_result = probeVirtIO();
-    if (virtio_probe_result > 0) {return 1;}
-
-    //modprobe for virtio
-
+    if (tuxID::shellCommandReturns("lsmod | grep virtio"))
+        return 1;
+    if (tuxID::shellCommandReturns("lsmod | grep vboxguest"))
+        return 1;
+    if (tuxID::shellCommandReturns("lsmod | grep vmwgfx"))
+        return 1;
+    if(tuxID::shellCommandReturns("lsmod | grep cirrus"))
+        return 1;
+    if(tuxID::shellCommandReturns("lsmod | grep vboxvideo"))
+        return 1;
+    if(tuxID::shellCommandReturns("lsmod | grep qemu"))
+        return 1;
+    if (tuxID::shellCommandReturns("cat /etc/fstab | grep /dev/vda"))
+        return 1;
+    if (tuxID::probeDmiData("KVM"))
+        return 1;
+    if (tuxID::probeDmiData("VirtualBox"))
+        return 1;
 
 
     return 0;
