@@ -1,3 +1,22 @@
+/// Hardware ID -
+// @auth William J. Tomasine II, Josh O'Leary
+// This module facilitates uniquely identifying devices by tokens pulled from hardware.
+// In this specific implementation case, for x86 desktops running Linux.
+
+// A Hardware Hash is generated via concatenating the Hardware Profile fields
+// into one string, and feeding that to a standard cryptographic hashing algorithm.
+
+// This hash uniquely identifies the device, without presenting a privacy hazard to the device owner.
+// Use cases:
+// Prevent MultiAccounting in online games.
+// Detect end-users running VPNs, Virtual Machines etc.
+
+// Further Considerations: hardware changes slowly over time, but hashes
+
+
+// TODO LIST:
+// Decide on names HardwareID or TuxID
+
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
@@ -8,8 +27,26 @@
 #include <sys/stat.h>
 
 
+namespace Stepbro::HardwareID
+{
 
-const char* diskSerial()  {
+    struct HardwareProfile
+    {
+        std::string diskSerialCode;
+    };
+
+
+    HardwareProfile getCurrentHardwareProfile();
+    std::string getHardwareHash(HardwareProfile);
+    std::string getHardwareHash();
+    std::string getDiskSerialCode();
+    bool getIsLikelyVirtualMachine();
+    bool getIsDefinitelyVirtualMachine();
+    bool isVirtualMachine();
+}
+
+
+std::string Stepbro::HardwareID::getDiskSerialCode()  {
     struct udev *ud = NULL;
     struct stat statbuf;
     struct udev_device *device = NULL;
@@ -40,10 +77,10 @@ const char* diskSerial()  {
         entry = udev_list_entry_get_next(entry);
     }
     //printf(udev_list_entry_get_value(entry));
-    return udev_list_entry_get_value(entry);
+    return std::string(udev_list_entry_get_value(entry));
 }
 
-bool isVirtualMachine() {
+bool Stepbro::HardwareID::isVirtualMachine() {
     //modprobe for virtio
     FILE *fd = popen("lsmod | grep virtio", "r");
     char buf[16];
@@ -52,8 +89,8 @@ bool isVirtualMachine() {
     }
 
     //modprobe for virtio
-    FILE *fd = popen("cat /etc/fstab | grep vda", "r");
-    char buf[16];
+    fd = popen("cat /etc/fstab | grep vda", "r");
+    buf[16];
     if (fread (buf, 1, sizeof (buf), fd) > 0) {
         return 1;
     }

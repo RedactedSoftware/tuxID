@@ -1,13 +1,10 @@
 #include "hardwareID.hpp"
+#include <iostream>
 
 int main()
 {
-      fprintf(stdout,"\n");
-      fprintf(stdout,diskSerial());
-      if(!isVirtualMachine()) {
-          fprintf(stdout,"\nNot a VM.");
-      } else {
-          fprintf(stdout,"\nVirtual Machine.");
-      }
+    std::cout << "HardwareID Demo" << std::endl;
+    std::cout << "Disk Serial Code: " << Stepbro::HardwareID::getDiskSerialCode() << std::endl;
+    std::cout << "VM Detected: " << Stepbro::HardwareID::isVirtualMachine() << std::endl;
    return 0;
 }
