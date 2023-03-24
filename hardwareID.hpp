@@ -16,7 +16,7 @@
 // Prevent MultiAccounting in online games.
 // Detect end-users running VPNs, Virtual Machines etc.
 //
-// Further Considerations: hardware changes slowly over time, but hashes
+// Further Considerations: hardware changes slowly over time.
 
 // LICENSE //
 // MIT
@@ -51,6 +51,7 @@ namespace tuxID
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
+    bool isDebuggerAttached();
     bool isSuperUser();
     bool shellCommandReturns(const char* command);
     bool shellCommandReturns(const std::string);
@@ -164,4 +165,19 @@ bool tuxID::isVirtualMachine() {
         return 1;
 
     return 0;
+}
+
+bool tuxID::isDebuggerAttached() {
+
+    std::ifstream sf("/proc/self/status");
+    std::string s;
+    while (sf >> s) {
+        if (s == "TracerPid:") {
+            int pid;
+            sf >> pid;
+            return pid != 0;
+            }
+            std::getline(sf, s);
+        }
+        return false;
 }

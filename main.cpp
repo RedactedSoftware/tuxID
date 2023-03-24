@@ -7,6 +7,7 @@ int main()
     std::cout << "Disk Serial Code: " << tuxID::getDiskSerialCode()  << std::endl;
     std::cout << "Is SuperUser: " << tuxID::isSuperUser() << std::endl;
     std::cout << "VM Detected: " << tuxID::isVirtualMachine() << std::endl;
+    std::cout << "Debugger Attached: " << tuxID::isDebuggerAttached() << std::endl;
     if (tuxID::scanDMIData("VirtualBox")) {
         std::cout << "Virtual Machine Type: VirtualBox" << std::endl;
     }
