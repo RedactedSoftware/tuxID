@@ -84,6 +84,7 @@ bool tuxID::shellCommandReturns(const char* command) {
     if (fread (buf, 1, sizeof (buf), shellCommand) > 0) {
         return 1;
     }
+    return 0;
 }
 bool tuxID::shellCommandReturns(const std::string command) {
     return tuxID::shellCommandReturns(command.c_str());
