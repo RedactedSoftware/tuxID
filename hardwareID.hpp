@@ -35,21 +35,19 @@
 
 #include "obfuscation.hpp"
 
+struct HardwareProfile
+{
+    std::string diskSerialCode;
+};
+// TuxID Module Header Declaration
 namespace tuxID
 {
-
-    struct HardwareProfile
-    {
-        std::string diskSerialCode;
-    };
-
-
     HardwareProfile getCurrentHardwareProfile();
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
     std::string getDiskSerialCode();
-    bool scanDMIData(std::string);
-    std::string readDMIData(std::string);
+    bool scanDMIData(std::string keyword);
+    std::string readDMIData(std::string keyword);
     bool isVirtualMachine();
     bool isDebuggerAttached();
     bool isSuperUser();
@@ -58,18 +56,22 @@ namespace tuxID
     bool isLDPreload();
 }
 
+
+
 bool tuxID::isSuperUser() {
     if (getuid() == 0)
         return 1;
     return 0;
 }
 
-// Alternatively, SMBIOS I/O can be implemented as a CPP Library
-// To probably achieve platform
-// https://github.com/dell/libsmbios
 
+// Polls dmidecode shell program for keyword. returns true if grep matches anything atall
 // @see: https://en.wikipedia.org/wiki/Dmidecode
 bool tuxID::scanDMIData(const std::string string) {
+    // Alternatively, SMBIOS can be implemented as a CPP Library
+    // We will do this **later**...
+    // https://github.com/dell/libsmbios
+
     if (!isSuperUser())
         return 0;
     std::string command = std::string(OBFUSCATE("dmidecode | grep "));
@@ -82,11 +84,16 @@ bool tuxID::scanDMIData(const std::string string) {
     return 0;
 }
 
+// Reads data from dmidecode; Will return multiple matches, newline-separated.
+// @see: https://en.wikipedia.org/wiki/Dmidecode
 std::string tuxID::readDMIData(const std::string keyword)
 {
+    // Alternatively, SMBIOS can be implemented as a CPP Library
+    // We will do this **later**...
+    // https://github.com/dell/libsmbios
+
     if (!isSuperUser())
         return 0;
-    // TODO: Research dmidecode source code
     std::string command = "dmidecode | grep -w '";
     command = command.append(keyword);
     command = command.append("'");
@@ -97,9 +104,9 @@ std::string tuxID::readDMIData(const std::string keyword)
     return "";
 }
 
-
-// Runs a shell command & returns 1 if the command returns any result
-// Returns 0 if the command returns nothing
+// Runs a given command in the environment's *nix shell
+// Returns true if the command has **any** output, otherwise returns false.
+// @see tuxID::shellCommandReturns(const std::string)
 bool tuxID::shellCommandReturns(const char* command) {
     FILE *shellCommand = popen(command, "r");
     char buf[16];
@@ -108,10 +115,14 @@ bool tuxID::shellCommandReturns(const char* command) {
     }
     return 0;
 }
+
+// @see tuxID::shellCommandReturns(const char*)
 bool tuxID::shellCommandReturns(const std::string command) {
     return tuxID::shellCommandReturns(command.c_str());
 }
 
+// Probe the system for common drive types.
+// Then, probe the first found drives for a serial number.
 std::string tuxID::getDiskSerialCode()  {
     struct udev *ud = NULL;
     struct stat statbuf;
