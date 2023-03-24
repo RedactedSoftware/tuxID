@@ -32,10 +32,15 @@
 #include <sys/stat.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <iostream>
 
 
 namespace tuxID
 {
+
+    enum VirtualMachineVendor {
+        VMWare, VirtualBox, QEMU, 
+    };
 
     struct HardwareProfile
     {
@@ -47,9 +52,8 @@ namespace tuxID
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
     std::string getDiskSerialCode();
-    bool scanDMIData(std::string string);
-    bool getIsLikelyVirtualMachine();
-    bool getIsDefinitelyVirtualMachine();
+    bool scanDMIData(std::string);
+    std::string readDMIData(std::string);
     bool isVirtualMachine();
     bool isSuperUser();
     bool shellCommandReturns(const char* command);
@@ -62,9 +66,15 @@ bool tuxID::isSuperUser() {
     return 0;
 }
 
+// Alternatively, SMBIOS I/O can be implemented as a CPP Library
+// To probably achieve platform
+// https://github.com/dell/libsmbios
+
+// @see: https://en.wikipedia.org/wiki/Dmidecode
 bool tuxID::scanDMIData(const std::string string) {
     if (!isSuperUser())
         return 0;
+    // TODO: Research dmidecode source code
     std::string command = "dmidecode | grep ";
     command = command.append(string);
     FILE *shellCommand = popen(command.c_str(), "r");
@@ -73,6 +83,21 @@ bool tuxID::scanDMIData(const std::string string) {
         return 1;
     }
     return 0;
+}
+
+std::string tuxID::readDMIData(const std::string keyword)
+{
+    if (!isSuperUser())
+        return 0;
+    // TODO: Research dmidecode source code
+    std::string command = "dmidecode | grep -w '";
+    command = command.append(keyword);
+    command = command.append("'");
+    FILE *shellCommand = popen(command.c_str(), "r");
+    char buf[1024]; // Use larger buffer because we want to actually read the result.
+    if (fread (buf, 1, sizeof (buf), shellCommand) > 0)
+        return std::string(buf);
+    return "";
 }
 
 
