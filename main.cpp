@@ -3,16 +3,17 @@
 
 int main()
 {
-    std::cout << "HardwareID Demo" << std::endl;
-    std::cout << "Disk Serial Code: " << tuxID::getDiskSerialCode()  << std::endl;
-    std::cout << "Is SuperUser: " << tuxID::isSuperUser() << std::endl;
-    std::cout << "VM Detected: " << tuxID::isVirtualMachine() << std::endl;
-    std::cout << "Debugger Attached: " << tuxID::isDebuggerAttached() << std::endl;
-    if (tuxID::scanDMIData("VirtualBox")) {
-        std::cout << "Virtual Machine Type: VirtualBox" << std::endl;
+    std::cout << OBFUSCATE("HardwareID Demo") << std::endl;
+    std::cout << OBFUSCATE("Disk Serial Code: ") << tuxID::getDiskSerialCode()  << std::endl;
+    std::cout << OBFUSCATE("Is SuperUser: ") << tuxID::isSuperUser() << std::endl;
+    std::cout << OBFUSCATE("VM Detected: ") << tuxID::isVirtualMachine() << std::endl;
+    std::cout << OBFUSCATE("Debugger Attached: ") << tuxID::isDebuggerAttached() << std::endl;
+    if (tuxID::scanDMIData(std::string (OBFUSCATE("VirtualBox")))) {
+        std::cout << std::string (OBFUSCATE("Virtual Machine Type: VirtualBox")) << std::endl;
+        const char* obfuscated_string = OBFUSCATE("Hello World");
     }
     if (tuxID::scanDMIData("KVM")) {
-        std::cout << "Virtual Machine Type: KVM" << std::endl;
+        std::cout << std::string (OBFUSCATE("Virtual Machine Type: KVM")) << std::endl;
     }
    return 0;
 }
