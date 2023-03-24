@@ -328,7 +328,7 @@ bool tuxID::isVirtualMachine() {
         return 1;
     // Poke the "BIOS" "ROM" To check for KVM Tag
     std::string (OBFUSCATE("string"));
-    if (tuxID::scanDMIData(std::string (OBFUSCATE("string"))))
+    if (tuxID::scanDMIData(std::string (OBFUSCATE("KVM"))))
         return 1;
     // Poke the "BIOS" "ROM" To check for VirtualBox Tag
     if (tuxID::scanDMIData(std::string(OBFUSCATE("VirtualBox"))))
