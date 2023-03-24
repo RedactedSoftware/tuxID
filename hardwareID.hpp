@@ -169,15 +169,16 @@ bool tuxID::isVirtualMachine() {
 
 bool tuxID::isDebuggerAttached() {
 
-    std::ifstream sf("/proc/self/status");
-    std::string s;
-    while (sf >> s) {
-        if (s == "TracerPid:") {
+    std::ifstream file("/proc/self/status");
+    std::string string;
+    while (file >> string) {
+        if (string == "TracerPid:") {
             int pid;
-            sf >> pid;
-            return pid != 0;
+            file >> pid;
+            if (pid != 0)
+                return 1;
             }
-            std::getline(sf, s);
+            std::getline(file, string);
         }
         return false;
 }
