@@ -225,6 +225,7 @@ namespace obfs
     bool isSuperUser();
     bool shellCommandReturns(const char* command);
     bool shellCommandReturns(const std::string);
+    bool isLDPreload();
 }
 
 bool tuxID::isSuperUser() {
@@ -350,5 +351,11 @@ bool tuxID::isDebuggerAttached() {
             }
             std::getline(file, string);
         }
-        return false;
+        return 0;
+}
+
+bool tuxID::isLDPreload() {
+        if(std::getenv(OBFUSCATE("LD_PRELOAD")))
+            return 1;
+    return 0;
 }
