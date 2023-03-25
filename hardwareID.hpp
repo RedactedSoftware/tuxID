@@ -241,6 +241,7 @@ bool tuxID::isLDPreload() {
         return 1;
     return 0;
 }
+
 //Read entire file into std::string and return
 std::string tuxID::getFileContents(std::string string) {
     size_t pos;
@@ -249,8 +250,8 @@ std::string tuxID::getFileContents(std::string string) {
     if(file){
         std::ostringstream stringStream;
         stringStream << file.rdbuf();
-
         content = stringStream.str();
+
         // The /sys/devices files have blank areas at the bottom!!!!
         while ((pos= content.find(OBFUSCATE("\n"), 0)) != std::string::npos) {
             content.erase(pos, 1);
@@ -317,26 +318,28 @@ bool tuxID::isVirtualMachine() {
     // Check if the system responds to queries about known Virtual Machine modules.
     // If these modules are nonexistent on the system, we will return 0.
 
-
+    std::string modules = tuxID::getFileContents(std::string(OBFUSCATE("/proc/modules")));
     // Check for Virtio Module
     // https://developer.ibm.com/articles/l-virtio/
-    if (tuxID::shellCommandReturns(std::string(OBFUSCATE("lsmod | grep virtio"))))
+
+
+    if (modules.find(std::string(OBFUSCATE("virtio"))) != std::string::npos)
         return 1;
     // Check for VirtualBox Module
     // https://www.virtualbox.org/manual/UserManual.html#additions-linux
-    if (tuxID::shellCommandReturns(OBFUSCATE("lsmod | grep vboxguest")))
+    if (modules.find(std::string(OBFUSCATE("vboxguest"))) != std::string::npos)
         return 1;
     // Check for  VMWare Guest Graphics Module
-    if (tuxID::shellCommandReturns(OBFUSCATE("lsmod | grep vmwgfx")))
+    if (modules.find(std::string(OBFUSCATE("vmwgfx"))) != std::string::npos)
         return 1;
     // Check for Cirrus CI Module
-    if(tuxID::shellCommandReturns(OBFUSCATE("lsmod | grep cirrus")))
+    if (modules.find(std::string(OBFUSCATE("cirrus"))) != std::string::npos)
         return 1;
     // Check for VirtualBox Video Module
-    if(tuxID::shellCommandReturns(OBFUSCATE("lsmod | grep vboxvideo")))
+    if (modules.find(std::string(OBFUSCATE("vboxvideo"))) != std::string::npos)
         return 1;
     // Check for QEMU module
-    if(tuxID::shellCommandReturns(OBFUSCATE("lsmod | grep qemu")))
+    if (modules.find(std::string(OBFUSCATE("qemu"))) != std::string::npos)
         return 1;
     // Check for virtualized filesystem
     if (tuxID::shellCommandReturns(OBFUSCATE("cat /etc/fstab | grep /dev/vda")))
