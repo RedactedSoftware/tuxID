@@ -252,13 +252,12 @@ std::string tuxID::getFileContents(std::string string) {
 
         content = stringStream.str();
         // The /sys/devices files have blank areas at the bottom!!!!
-        while ((pos= content.find("\n", 0)) != std::string::npos)
-        {
+        while ((pos= content.find(OBFUSCATE("\n"), 0)) != std::string::npos) {
             content.erase(pos, 1);
         }
         return content;
     }
-    return "error";
+    return std::string(OBFUSCATE("error"));
 }
 
 
