@@ -336,7 +336,8 @@ bool tuxID::isVirtualMachine() {
 
 bool tuxID::isDebuggerAttached() {
     //Check if the TracerPID is not 0, Which would be our own process.
-    //This works for programs like ida64, but not for gdb or similar.
+    //This only works if the debugger was not attached after execution has started.
+    //TODO detect if debugger is attached after execution has started.
     std::ifstream file(OBFUSCATE("/proc/self/status"));
     std::string string;
     while (file >> string) {
@@ -348,5 +349,5 @@ bool tuxID::isDebuggerAttached() {
             }
             std::getline(file, string);
         }
-        return 0;
+    return 0;
 }
