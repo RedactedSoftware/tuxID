@@ -225,11 +225,9 @@ namespace obfs
     bool isVirtualMachine();
     bool isDebuggerAttached();
     bool isSuperUser();
-    bool shellCommandReturns(const char* command);
-    bool shellCommandReturns(const std::string);
     bool isLDPreload();
 }
-//TODO. Refrain from executing shell commands wherever possible, It's slow and potentially less secure.
+
 bool tuxID::isSuperUser() {
     if (getuid() == 0)
         return 1;
@@ -259,21 +257,6 @@ std::string tuxID::getFileContents(std::string string) {
         return content;
     }
     return std::string(OBFUSCATE("error"));
-}
-
-
-// Runs a shell command & returns 1 if the command returns any result
-// Returns 0 if the command returns nothing
-bool tuxID::shellCommandReturns(const char* command) {
-    FILE *shellCommand = popen(command, "r");
-    char buf[16];
-    if (fread (buf, 1, sizeof (buf), shellCommand) > 0) {
-        return 1;
-    }
-    return 0;
-}
-bool tuxID::shellCommandReturns(const std::string command) {
-    return tuxID::shellCommandReturns(command.c_str());
 }
 
 std::string tuxID::getDiskSerialCode()  {
@@ -321,11 +304,9 @@ bool tuxID::isVirtualMachine() {
     std::string modules = tuxID::getFileContents(std::string(OBFUSCATE("/proc/modules")));
     // Check for Virtio Module
     // https://developer.ibm.com/articles/l-virtio/
-
-
     if (modules.find(std::string(OBFUSCATE("virtio"))) != std::string::npos)
         return 1;
-    // Check for VirtualBox Module
+    // Check for VirtualBox Guest Additions Module
     // https://www.virtualbox.org/manual/UserManual.html#additions-linux
     if (modules.find(std::string(OBFUSCATE("vboxguest"))) != std::string::npos)
         return 1;
@@ -338,25 +319,24 @@ bool tuxID::isVirtualMachine() {
     // Check for VirtualBox Video Module
     if (modules.find(std::string(OBFUSCATE("vboxvideo"))) != std::string::npos)
         return 1;
-    // Check for QEMU module
-    if (modules.find(std::string(OBFUSCATE("qemu"))) != std::string::npos)
-        return 1;
-    // Check for virtualized filesystem
-    if (tuxID::shellCommandReturns(OBFUSCATE("cat /etc/fstab | grep /dev/vda")))
-        return 1;
     // Check if the motherboard name is "KVM"
-    std::string (OBFUSCATE("string"));
     if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("KVM")))
         return 1;
     // Check if the motherboard name is "VirtualBox"
     if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("VirtualBox")))
+        return 1;
+    // Check for virtualized filesystem
+    //Keep this one at the end.
+    // It is extremely likely that the other checks give it away and the file is usually long.
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/mounts"))).find(std::string(OBFUSCATE("/dev/vda"))) != std::string::npos)
         return 1;
 
     return 0;
 }
 
 bool tuxID::isDebuggerAttached() {
-
+    //Check if the TracerPID is not 0, Which would be our own process.
+    //This works for programs like ida64, but not for gdb or similar.
     std::ifstream file(OBFUSCATE("/proc/self/status"));
     std::string string;
     while (file >> string) {
