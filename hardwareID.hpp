@@ -217,7 +217,7 @@ namespace obfs
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
     std::string getDiskSerialCode();
-    bool scanDMIData(std::string string);
+    std::string getFileContents(std::string string);
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
@@ -227,23 +227,24 @@ namespace obfs
     bool shellCommandReturns(const std::string);
     bool isLDPreload();
 }
-
+//TODO. Refrain from executing shell commands wherever possible, It's slow and potentially less secure.
 bool tuxID::isSuperUser() {
     if (getuid() == 0)
         return 1;
     return 0;
 }
-bool tuxID::scanDMIData(const std::string string) {
-    if (!isSuperUser())
-        return 0;
-    std::string command = std::string(OBFUSCATE("dmidecode | grep "));
-    command = command.append(string);
-    FILE *shellCommand = popen(command.c_str(), "r");
-    char buf[16];
-    if (fread (buf, 1, sizeof (buf), shellCommand) > 0) {
+
+bool tuxID::isLDPreload() {
+    if(std::getenv(OBFUSCATE("LD_PRELOAD")))
         return 1;
-    }
     return 0;
+}
+std::string tuxID::getFileContents(std::string string) {
+    std::string content;
+    std::ifstream file(string);
+    if(file.is_open())
+        file >> content;
+    return content;
 }
 
 
@@ -327,12 +328,12 @@ bool tuxID::isVirtualMachine() {
     // Check for virtualized filesystem
     if (tuxID::shellCommandReturns(OBFUSCATE("cat /etc/fstab | grep /dev/vda")))
         return 1;
-    // Poke the "BIOS" "ROM" To check for KVM Tag
+    // Check if the motherboard name is "KVM"
     std::string (OBFUSCATE("string"));
-    if (tuxID::scanDMIData(std::string (OBFUSCATE("KVM"))))
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("KVM")))
         return 1;
-    // Poke the "BIOS" "ROM" To check for VirtualBox Tag
-    if (tuxID::scanDMIData(std::string(OBFUSCATE("VirtualBox"))))
+    // Check if the motherboard name is "VirtualBox"
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("VirtualBox")))
         return 1;
 
     return 0;
@@ -352,10 +353,4 @@ bool tuxID::isDebuggerAttached() {
             std::getline(file, string);
         }
         return 0;
-}
-
-bool tuxID::isLDPreload() {
-        if(std::getenv(OBFUSCATE("LD_PRELOAD")))
-            return 1;
-    return 0;
 }
