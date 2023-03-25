@@ -32,6 +32,8 @@
 #include <sys/stat.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sstream>
+#include <algorithm>
 
 #ifdef _MSC_VER
 #define AY_CAT(X,Y) AY_CAT2(X,Y)
@@ -217,7 +219,7 @@ namespace obfs
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
     std::string getDiskSerialCode();
-    std::string getFileContents(std::string string);
+    std::string getFileContents(const std::string string);
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
@@ -239,12 +241,24 @@ bool tuxID::isLDPreload() {
         return 1;
     return 0;
 }
+//Read entire file into std::string and return
 std::string tuxID::getFileContents(std::string string) {
+    size_t pos;
     std::string content;
     std::ifstream file(string);
-    if(file.is_open())
-        file >> content;
-    return content;
+    if(file){
+        std::ostringstream stringStream;
+        stringStream << file.rdbuf();
+
+        content = stringStream.str();
+        // The /sys/devices files have blank areas at the bottom!!!!
+        while ((pos= content.find("\n", 0)) != std::string::npos)
+        {
+            content.erase(pos, 1);
+        }
+        return content;
+    }
+    return "error";
 }
 
 
