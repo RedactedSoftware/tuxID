@@ -3,5 +3,5 @@ project(tuxID)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(tuxID hardwareID.hpp main.cpp)
-target_link_libraries(tuxID PUBLIC udev)
+add_executable(tuxID hardwareID.hpp obfuscation.hpp main.cpp)
+target_link_libraries(tuxID PUBLIC udev )
