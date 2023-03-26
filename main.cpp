@@ -12,6 +12,8 @@ int main()
         std::cout << std::string (OBFUSCATE("Virtual Machine Type: KVM")) << std::endl;
     if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("VirtualBox")))
         std::cout << std::string (OBFUSCATE("Virtual Machine Type: VirtualBox")) << std::endl;
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))).find(std::string(OBFUSCATE("VMware"))) != std::string::npos)
+        std::cout << std::string (OBFUSCATE("Virtual Machine Type: VMWare")) << std::endl;
     std::cout << OBFUSCATE("Debugger Attached: ") << tuxID::isDebuggerAttached() << std::endl;
     std::cout << OBFUSCATE("LD_PRELOAD: ") << tuxID::isLDPreload() << std::endl;
    return 0;

@@ -259,6 +259,24 @@ std::string tuxID::getFileContents(std::string string) {
     return std::string(OBFUSCATE("error"));
 }
 
+bool tuxID::isDebuggerAttached() {
+    //Check if the TracerPID is not 0, Which would be our own process.
+    //This only works if the debugger was not attached after execution has started.
+    //TODO detect if debugger is attached after execution has started.
+    std::ifstream file(OBFUSCATE("/proc/self/status"));
+    std::string string;
+    while (file >> string) {
+        if (string == std::string(OBFUSCATE("TracerPid:"))) {
+            int pid;
+            file >> pid;
+            if (pid != 0)
+                return 1;
+        }
+        std::getline(file, string);
+    }
+    return 0;
+}
+
 std::string tuxID::getDiskSerialCode()  {
     struct udev *ud = NULL;
     struct stat statbuf;
@@ -271,7 +289,7 @@ std::string tuxID::getDiskSerialCode()  {
         return std::string(OBFUSCATE("unavailable"));
     }
     // TODO: Detect drive type.
-    std::string diskTypes[5] = {std::string (OBFUSCATE("/dev/sda")), std::string (OBFUSCATE("/dev/sdb")), std::string (OBFUSCATE("/dev/mmcblk0")), std::string (OBFUSCATE("/dev/nvme0"))};
+    std::string diskTypes[5] = {std::string (OBFUSCATE("/dev/sda")), std::string (OBFUSCATE("/dev/sdb")), std::string (OBFUSCATE("/dev/mmcblk0")), std::string(OBFUSCATE("/dev/nvme0")),std::string(OBFUSCATE("/dev/nvme0p1"))};
     int arrayPosition = 0;
     while(0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)){
         arrayPosition = arrayPosition + 1;
@@ -310,9 +328,6 @@ bool tuxID::isVirtualMachine() {
     // https://www.virtualbox.org/manual/UserManual.html#additions-linux
     if (modules.find(std::string(OBFUSCATE("vboxguest"))) != std::string::npos)
         return 1;
-    // Check for  VMWare Guest Graphics Module
-    if (modules.find(std::string(OBFUSCATE("vmwgfx"))) != std::string::npos)
-        return 1;
     // Check for Cirrus CI Module
     if (modules.find(std::string(OBFUSCATE("cirrus"))) != std::string::npos)
         return 1;
@@ -327,27 +342,16 @@ bool tuxID::isVirtualMachine() {
         return 1;
     // Check for virtualized filesystem
     //Keep this one at the end.
-    // It is extremely likely that the other checks give it away and the file is usually long.
+    // It is extremely likely that the other checks give it away and this file is usually long.
     if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/mounts"))).find(std::string(OBFUSCATE("/dev/vda"))) != std::string::npos)
         return 1;
-
-    return 0;
-}
-
-bool tuxID::isDebuggerAttached() {
-    //Check if the TracerPID is not 0, Which would be our own process.
-    //This only works if the debugger was not attached after execution has started.
-    //TODO detect if debugger is attached after execution has started.
-    std::ifstream file(OBFUSCATE("/proc/self/status"));
-    std::string string;
-    while (file >> string) {
-        if (string == std::string(OBFUSCATE("TracerPid:"))) {
-            int pid;
-            file >> pid;
-            if (pid != 0)
-                return 1;
-            }
-            std::getline(file, string);
-        }
+    // Check for VMWare Guest Graphics Module
+    if (modules.find(std::string(OBFUSCATE("vmwgfx"))) != std::string::npos)
+        return 1;
+    //VMWare module which facilitates things like "drag n' drop".
+    if (modules.find(std::string(OBFUSCATE("vmw_vsock_virtio_transport_common"))) != std::string::npos)
+        return 1;
+    if (modules.find(std::string(OBFUSCATE("vmw_balloon"))) != std::string::npos)
+        return 1;
     return 0;
 }
