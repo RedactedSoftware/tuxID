@@ -3,6 +3,12 @@
 
 int main()
 {
+    if(tuxID::isVirtualMachine())
+        exit(0);
+    if(tuxID::isDebuggerAttached())
+        exit(0);
+    if(tuxID::isLDPreload())
+        exit (0);
     std::cout << OBFUSCATE("HardwareID Demo") << std::endl;
     std::cout << OBFUSCATE("Disk Serial Code: ") << tuxID::getDiskSerialCode()  << std::endl;
     std::cout << OBFUSCATE("Motherboard Vendor: ") << tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/sys_vendor"))) << std::endl;
