@@ -47,27 +47,33 @@
 #define OBFUSCATE_DEFAULT_KEY obfs::generate_key(AY_LINE)
 #endif
 
+
+// CLion can't fold this accurately...
+// So I moved it outside obfs namespace
+// That way we can collapse the whole namespace
+// Generate a pseudo-random key that spans all 8 bytes
+constexpr key_type generate_key(key_type seed)
+{
+    // Use the MurmurHash3 64-bit finalizer to hash our seed
+    key_type key = seed;
+    key ^= (key >> 33);
+    key *= 0xff51afd7ed558ccd;
+    key ^= (key >> 33);
+    key *= 0xc4ceb9fe1a85ec53;
+    key ^= (key >> 33);
+
+    // Make sure that a bit in each byte is set
+    key |= 0x0101010101010101ull;
+
+    return key;
+}
+
 namespace obfs
 {
     using size_type = unsigned long long;
     using key_type = unsigned long long;
 
-    // Generate a pseudo-random key that spans all 8 bytes
-    constexpr key_type generate_key(key_type seed)
-    {
-        // Use the MurmurHash3 64-bit finalizer to hash our seed
-        key_type key = seed;
-        key ^= (key >> 33);
-        key *= 0xff51afd7ed558ccd;
-        key ^= (key >> 33);
-        key *= 0xc4ceb9fe1a85ec53;
-        key ^= (key >> 33);
 
-        // Make sure that a bit in each byte is set
-        key |= 0x0101010101010101ull;
-
-        return key;
-    }
 
     // Obfuscates or deobfuscates data with key
     constexpr void cipher(char* data, size_type size, key_type key)
@@ -206,27 +212,24 @@ namespace obfs
 		return obfuscated_data; \
 	}()
 
-    namespace tuxID
+// tuxID Namespace
+//
+namespace tuxID
 {
-
-    struct HardwareProfile
-    {
-        std::string diskSerialCode;
-    };
-
-
-    HardwareProfile getCurrentHardwareProfile();
-    std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
     std::string getDiskSerialCode();
     std::string getFileContents(const std::string string);
-    bool getIsLikelyVirtualMachine();
-    bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
     bool isDebuggerAttached();
     bool isSuperUser();
     bool isLDPreload();
 }
+
+// TODO: Implement cryptographic hashing algorithms
+// To start, SHA256
+
+// TODO: Implement concatenation of each suitable hardware token
+std::string tuxID::getHardwareHash() { return "";}
 
 bool tuxID::isSuperUser() {
     if (getuid() == 0)
@@ -240,7 +243,9 @@ bool tuxID::isLDPreload() {
     return 0;
 }
 
-//Read entire file into std::string and return
+// Read entire file into std::string and return
+// With a specific check for blank lines at the end
+// This is needed when reading /sys/devices files
 std::string tuxID::getFileContents(std::string string) {
     size_t pos;
     std::string content;
@@ -277,6 +282,8 @@ bool tuxID::isDebuggerAttached() {
     return 0;
 }
 
+// Retrieves the Serial code from the first found disk drive
+// Checks for SATA, IDE, NVMe, and eMMC drives
 std::string tuxID::getDiskSerialCode()  {
     struct udev *ud = NULL;
     struct stat statbuf;
