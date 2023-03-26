@@ -48,32 +48,30 @@
 #endif
 
 
-// CLion can't fold this accurately...
-// So I moved it outside obfs namespace
-// That way we can collapse the whole namespace
-// Generate a pseudo-random key that spans all 8 bytes
-constexpr key_type generate_key(key_type seed)
-{
-    // Use the MurmurHash3 64-bit finalizer to hash our seed
-    key_type key = seed;
-    key ^= (key >> 33);
-    key *= 0xff51afd7ed558ccd;
-    key ^= (key >> 33);
-    key *= 0xc4ceb9fe1a85ec53;
-    key ^= (key >> 33);
-
-    // Make sure that a bit in each byte is set
-    key |= 0x0101010101010101ull;
-
-    return key;
-}
-
 namespace obfs
 {
     using size_type = unsigned long long;
     using key_type = unsigned long long;
 
+    // CLion can't fold this accurately...
+    // So I moved it outside obfs namespace
+    // That way we can collapse the whole namespace
+    // Generate a pseudo-random key that spans all 8 bytes
+    constexpr key_type generate_key(key_type seed)
+    {
+        // Use the MurmurHash3 64-bit finalizer to hash our seed
+        key_type key = seed;
+        key ^= (key >> 33);
+        key *= 0xff51afd7ed558ccd;
+        key ^= (key >> 33);
+        key *= 0xc4ceb9fe1a85ec53;
+        key ^= (key >> 33);
 
+        // Make sure that a bit in each byte is set
+        key |= 0x0101010101010101ull;
+
+        return key;
+    }
 
     // Obfuscates or deobfuscates data with key
     constexpr void cipher(char* data, size_type size, key_type key)
