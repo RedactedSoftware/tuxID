@@ -289,7 +289,7 @@ std::string tuxID::getDiskSerialCode()  {
         return std::string(OBFUSCATE("unavailable"));
     }
     // TODO: Detect drive type.
-    std::string diskTypes[5] = {std::string (OBFUSCATE("/dev/sda")), std::string (OBFUSCATE("/dev/sdb")), std::string (OBFUSCATE("/dev/mmcblk0")), std::string(OBFUSCATE("/dev/nvme0")),std::string(OBFUSCATE("/dev/nvme0p1"))};
+    std::string diskTypes[5] = {std::string (OBFUSCATE("/dev/sda")),std::string (OBFUSCATE("/dev/hda")), std::string (OBFUSCATE("/dev/mmcblk0")), std::string(OBFUSCATE("/dev/nvme0")),std::string(OBFUSCATE("/dev/nvme0n1"))};
     int arrayPosition = 0;
     while(0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)){
         arrayPosition = arrayPosition + 1;
