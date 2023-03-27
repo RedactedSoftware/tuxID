@@ -35,6 +35,7 @@
 #include <sstream>
 #include <algorithm>
 #include <filesystem>
+#include <vector>
 
 #ifdef _MSC_VER
 #define AY_CAT(X,Y) AY_CAT2(X,Y)
@@ -219,9 +220,9 @@ namespace obfs
     HardwareProfile getCurrentHardwareProfile();
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
-    std::string getDiskSerialCode();
+    std::string getDiskSerialCode(const std::string string);
     std::string getFileContents(const std::string string);
-    std::string getFirstBlockDevice();
+    std::vector<std::string> getBlockDevices();
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
@@ -242,13 +243,19 @@ bool tuxID::isLDPreload() {
     return 0;
 }
 
-//TODO Change to getBlockDevices and return a string array of all of them.
-std::string tuxID::getFirstBlockDevice() {
+std::vector<std::string> tuxID::getBlockDevices() {
+    std::vector<std::string> array;
     for (const auto blockDevice: std::filesystem::directory_iterator(std::string(OBFUSCATE("/dev/disk/by-path")))) {
-        if(blockDevice.is_block_file())
-            return blockDevice.path();
+        if(blockDevice.is_block_file()) {
+            array.push_back(blockDevice.path());
+            for (int i = 0; i < array.size(); i++) {
+                if((array[i]).find(std::string(OBFUSCATE("-part"))) != std::string::npos || (array[i]).find(std::string(OBFUSCATE(".0"))) != std::string::npos) {
+                    array.erase(array.begin()+i);
+                }
+            }
+        }
     }
-    return std::string(OBFUSCATE("unavailable"));
+    return array;
 }
 //Read entire file into std::string and return
 std::string tuxID::getFileContents(std::string string) {
@@ -287,7 +294,7 @@ bool tuxID::isDebuggerAttached() {
     return 0;
 }
 
-std::string tuxID::getDiskSerialCode()  {
+std::string tuxID::getDiskSerialCode(std::string blockDevice)  {
     struct udev *ud = NULL;
     struct stat statbuf;
     struct udev_device *device = NULL;
@@ -297,7 +304,7 @@ std::string tuxID::getDiskSerialCode()  {
     if (ud == NULL)
         return std::string(OBFUSCATE("unavailable"));
 
-    if (0 != stat(tuxID::getFirstBlockDevice().c_str(), &statbuf))
+    if (0 != stat(blockDevice.c_str(), &statbuf))
 	    return std::string(OBFUSCATE("unavailable"));
 
     device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
