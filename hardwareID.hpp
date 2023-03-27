@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <sstream>
 #include <algorithm>
+#include <filesystem>
 
 #ifdef _MSC_VER
 #define AY_CAT(X,Y) AY_CAT2(X,Y)
@@ -220,6 +221,7 @@ namespace obfs
     std::string getHardwareHash();
     std::string getDiskSerialCode();
     std::string getFileContents(const std::string string);
+    std::string getFirstBlockDevice();
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
     bool isVirtualMachine();
@@ -240,6 +242,13 @@ bool tuxID::isLDPreload() {
     return 0;
 }
 
+std::string tuxID::getFirstBlockDevice() {
+    for (const auto blockDevice: std::filesystem::directory_iterator(std::string(OBFUSCATE("/dev/disk/by-diskseq")))) {
+        if(blockDevice.is_block_file())
+            return blockDevice.path();
+    }
+    return std::string(OBFUSCATE("unavailable"));
+}
 //Read entire file into std::string and return
 std::string tuxID::getFileContents(std::string string) {
     size_t pos;
@@ -284,23 +293,15 @@ std::string tuxID::getDiskSerialCode()  {
     struct udev_list_entry *entry = NULL;
 
     ud = udev_new();
-    if (NULL == ud) {
-        fprintf(stderr, OBFUSCATE("Failed to init udev.\n"));
+    if (ud == NULL)
         return std::string(OBFUSCATE("unavailable"));
-    }
-    // TODO: Detect drive type.
-    std::string diskTypes[5] = {std::string (OBFUSCATE("/dev/sda")),std::string (OBFUSCATE("/dev/hda")), std::string (OBFUSCATE("/dev/mmcblk0")), std::string(OBFUSCATE("/dev/nvme0")),std::string(OBFUSCATE("/dev/nvme0n1"))};
-    int arrayPosition = 0;
-    while(0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)){
-        arrayPosition = arrayPosition + 1;
-    }
-    if (0 != stat(diskTypes[arrayPosition].c_str(), &statbuf)) {
-	return std::string(OBFUSCATE("unavailable"));
-    }
+
+    if (0 != stat(tuxID::getFirstBlockDevice().c_str(), &statbuf))
+	    return std::string(OBFUSCATE("unavailable"));
+
     device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
-    if (NULL == device) {
+    if (device == NULL)
         return std::string(OBFUSCATE("unavailable"));
-    }
 
     entry = udev_device_get_properties_list_entry(device);
     while (NULL != entry) {
@@ -340,11 +341,6 @@ bool tuxID::isVirtualMachine() {
     // Check if the motherboard name is "VirtualBox"
     if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("VirtualBox")))
         return 1;
-    // Check for virtualized filesystem
-    //Keep this one at the end.
-    // It is extremely likely that the other checks give it away and this file is usually long.
-    if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/mounts"))).find(std::string(OBFUSCATE("/dev/vda"))) != std::string::npos)
-        return 1;
     // Check for VMWare Guest Graphics Module
     if (modules.find(std::string(OBFUSCATE("vmwgfx"))) != std::string::npos)
         return 1;
@@ -352,6 +348,11 @@ bool tuxID::isVirtualMachine() {
     if (modules.find(std::string(OBFUSCATE("vmw_vsock_virtio_transport_common"))) != std::string::npos)
         return 1;
     if (modules.find(std::string(OBFUSCATE("vmw_balloon"))) != std::string::npos)
+        return 1;
+    // Check for virtualized filesystem
+    //Keep this one at the end.
+    // It is extremely likely that the other checks give it away and this file is usually long.
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/mounts"))).find(std::string(OBFUSCATE("/dev/vda"))) != std::string::npos)
         return 1;
     return 0;
 }
