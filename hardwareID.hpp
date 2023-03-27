@@ -242,8 +242,9 @@ bool tuxID::isLDPreload() {
     return 0;
 }
 
+//TODO Change to getBlockDevices and return a string array of all of them.
 std::string tuxID::getFirstBlockDevice() {
-    for (const auto blockDevice: std::filesystem::directory_iterator(std::string(OBFUSCATE("/dev/disk/by-diskseq")))) {
+    for (const auto blockDevice: std::filesystem::directory_iterator(std::string(OBFUSCATE("/dev/disk/by-path")))) {
         if(blockDevice.is_block_file())
             return blockDevice.path();
     }
