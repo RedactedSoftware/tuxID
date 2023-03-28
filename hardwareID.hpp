@@ -220,7 +220,7 @@ namespace obfs
     HardwareProfile getCurrentHardwareProfile();
     std::string getHardwareHash(HardwareProfile);
     std::string getHardwareHash();
-    std::string getDiskSerialCode(const std::string string);
+    std::vector<std::string> getDiskSerialCodes();
     std::string getFileContents(const std::string string);
     std::vector<std::string> getBlockDevices();
     bool getIsLikelyVirtualMachine();
@@ -249,7 +249,7 @@ std::vector<std::string> tuxID::getBlockDevices() {
         if(blockDevice.is_block_file()) {
             array.push_back(blockDevice.path());
             for (int i = 0; i < array.size(); i++) {
-                if((array[i]).find(std::string(OBFUSCATE("-part"))) != std::string::npos || (array[i]).find(std::string(OBFUSCATE(".0"))) != std::string::npos) {
+                if((array[i]).find(std::string(OBFUSCATE("-part"))) != std::string::npos) {
                     array.erase(array.begin()+i);
                 }
             }
@@ -294,34 +294,39 @@ bool tuxID::isDebuggerAttached() {
     return 0;
 }
 
-std::string tuxID::getDiskSerialCode(std::string blockDevice)  {
+std::vector<std::string> tuxID::getDiskSerialCodes()  {
     struct udev *ud = NULL;
     struct stat statbuf;
     struct udev_device *device = NULL;
     struct udev_list_entry *entry = NULL;
+    std::vector<std::string> blockDevices = tuxID::getBlockDevices();
+    std::vector<std::string> array;
 
-    ud = udev_new();
-    if (ud == NULL)
-        return std::string(OBFUSCATE("unavailable"));
+    for (int i = 0; i < blockDevices.size(); i++) {
+        ud = udev_new();
+        if (ud == NULL)
+            return std::vector<std::string> {(std::string(OBFUSCATE("unavailable")))};
 
-    if (0 != stat(blockDevice.c_str(), &statbuf))
-	    return std::string(OBFUSCATE("unavailable"));
+        if (0 != stat(blockDevices[i].c_str(), &statbuf))
+            return std::vector<std::string> {(std::string(OBFUSCATE("unavailable")))};
 
-    device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
-    if (device == NULL)
-        return std::string(OBFUSCATE("unavailable"));
+        device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
+        if (device == NULL)
+            return std::vector<std::string> {(std::string(OBFUSCATE("unavailable")))};
 
-    entry = udev_device_get_properties_list_entry(device);
-    while (NULL != entry) {
-        if (0 == strcmp(udev_list_entry_get_name(entry),
-                        OBFUSCATE("ID_SERIAL"))) {
-            break;
+        entry = udev_device_get_properties_list_entry(device);
+        while (NULL != entry) {
+            if (0 == strcmp(udev_list_entry_get_name(entry),
+                            OBFUSCATE("ID_SERIAL"))) {
+                break;
+            }
+
+            entry = udev_list_entry_get_next(entry);
         }
-
-        entry = udev_list_entry_get_next(entry);
+        array.push_back(std::string(udev_list_entry_get_value(entry)));
+        array.erase( unique( array.begin(), array.end() ), array.end());
     }
-    //printf(udev_list_entry_get_value(entry));
-    return std::string(udev_list_entry_get_value(entry));
+    return array;
 }
 
 bool tuxID::isVirtualMachine() {

@@ -5,11 +5,11 @@ int main()
 {
     std::cout << OBFUSCATE("HardwareID Demo") << std::endl;
     std::cout << OBFUSCATE("Disk Serial Codes: ");
-    for (int i = 0; i < tuxID::getBlockDevices().size(); i++) {
-        std::cout << tuxID::getDiskSerialCode(tuxID::getBlockDevices()[i]);
-        if(i < tuxID::getBlockDevices().size() -1)
+    for (int i = 0; i < tuxID::getDiskSerialCodes().size(); i++) {
+        std::cout << tuxID::getDiskSerialCodes()[i];
+        if(i < tuxID::getDiskSerialCodes().size() -1)
             std::cout << OBFUSCATE(", ");
-        if(i == tuxID::getBlockDevices().size() -1)
+        if(i == tuxID::getDiskSerialCodes().size() -1)
             std::cout << std::endl;
     }
     std::cout << OBFUSCATE("Motherboard Vendor: ") << tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/sys_vendor"))) << std::endl;
