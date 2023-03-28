@@ -1,6 +1,6 @@
 # tuxID
 <p align="center">
-  <img src="https://github.com/RedactedSoftware/tuxID/blob/main/screenshots/VirtualBox.png" width=80% height=80%>
+  <img src="https://github.com/RedactedSoftware/tuxID/blob/main/screenshots/VirtualBox.png" width=75% height=75%>
 </p>
 
 ## Compilation
