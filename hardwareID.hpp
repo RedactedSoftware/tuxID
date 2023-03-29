@@ -385,6 +385,9 @@ bool tuxID::isVirtualMachine() {
         return 1;
     if (modules.find(std::string(OBFUSCATE("vmw_balloon"))) != std::string::npos)
         return 1;
+    //Check if we're inside of a docker container.
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/1/sched"))).find(std::string(OBFUSCATE("bash"))) != std::string::npos)
+        return 1;
     // Check for VirtIO filesystem
     //Keep this one at the end, It is extremely likely that the other checks give it away and this file is usually long.
     if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/mounts"))).find(std::string(OBFUSCATE("/dev/vda"))) != std::string::npos)
