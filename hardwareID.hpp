@@ -225,6 +225,7 @@ namespace obfs
     std::vector<std::string> getBlockDevices();
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
+    bool isKernelTampering();
     bool isVirtualMachine();
     bool isDebuggerAttached();
     bool isSuperUser();
@@ -249,16 +250,33 @@ std::vector<std::string> tuxID::getBlockDevices() {
         if(blockDevice.is_block_file()) {
             array.push_back(blockDevice.path());
             for (int i = 0; i < array.size(); i++) {
-                if((array[i]).find(std::string(OBFUSCATE("-part"))) != std::string::npos) {
+                if((array[i]).find(std::string(OBFUSCATE("-part"))) != std::string::npos || (array[i]).find(std::string(OBFUSCATE("virtio"))) != std::string::npos) {
                     array.erase(array.begin()+i);
                 }
             }
         }
     }
+    if (array.size() == 0)
+        return std::vector<std::string>{std::string(OBFUSCATE("NULL"))};
     return array;
 }
+bool tuxID::isKernelTampering() {
+    //TODO Check dmesg for outputs found within LWSS Cartographer and LWSS tracerhid.
+    std::string modules = tuxID::getFileContents(std::string(OBFUSCATE("/proc/modules")));
+
+    //LWSS Cartographer
+    if (std::ifstream(std::string(OBFUSCATE("/proc/cartographer"))))
+        return 1;
+    if(modules.find(std::string(OBFUSCATE("cartographer"))) != std::string::npos)
+        return 1;
+
+    //LWSS Tracerhid
+    if(modules.find(std::string(OBFUSCATE("tracerhid"))) != std::string::npos)
+        return 1;
+    return 0;
+}
 //Read entire file into std::string and return
-std::string tuxID::getFileContents(std::string string) {
+std::string tuxID::getFileContents(const std::string string) {
     size_t pos;
     std::string content;
     std::ifstream file(string);
@@ -273,7 +291,7 @@ std::string tuxID::getFileContents(std::string string) {
         }
         return content;
     }
-    return std::string(OBFUSCATE("error"));
+    return NULL;
 }
 
 bool tuxID::isDebuggerAttached() {
@@ -305,14 +323,14 @@ std::vector<std::string> tuxID::getDiskSerialCodes()  {
     for (int i = 0; i < blockDevices.size(); i++) {
         ud = udev_new();
         if (ud == NULL)
-            return std::vector<std::string> {(std::string(OBFUSCATE("unavailable")))};
+            return std::vector<std::string> {(std::string(OBFUSCATE("NULL")))};
 
         if (0 != stat(blockDevices[i].c_str(), &statbuf))
-            return std::vector<std::string> {(std::string(OBFUSCATE("unavailable")))};
+            return std::vector<std::string> {(std::string(OBFUSCATE("NULL")))};
 
         device = udev_device_new_from_devnum(ud, 'b', statbuf.st_rdev);
         if (device == NULL)
-            return std::vector<std::string> {(std::string(OBFUSCATE("unavailable")))};
+            return std::vector<std::string> {(std::string(OBFUSCATE("NULL")))};
 
         entry = udev_device_get_properties_list_entry(device);
         while (NULL != entry) {
@@ -324,8 +342,10 @@ std::vector<std::string> tuxID::getDiskSerialCodes()  {
             entry = udev_list_entry_get_next(entry);
         }
         array.push_back(std::string(udev_list_entry_get_value(entry)));
-        array.erase( unique( array.begin(), array.end() ), array.end());
+        array.erase( unique( array.begin(), array.end()), array.end());
     }
+    if(array.size() == 0 || array[0] == std::string(OBFUSCATE("NULL")))
+        return std::vector<std::string>{"NULL"};
     return array;
 }
 
@@ -354,6 +374,9 @@ bool tuxID::isVirtualMachine() {
     // Check if the motherboard name is "VirtualBox"
     if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("VirtualBox")))
         return 1;
+    //Check if the motherboard name contains "VMWare"
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))).find(std::string(OBFUSCATE("VMware"))) != std::string::npos)
+        return 1;
     // Check for VMWare Guest Graphics Module
     if (modules.find(std::string(OBFUSCATE("vmwgfx"))) != std::string::npos)
         return 1;
@@ -362,9 +385,8 @@ bool tuxID::isVirtualMachine() {
         return 1;
     if (modules.find(std::string(OBFUSCATE("vmw_balloon"))) != std::string::npos)
         return 1;
-    // Check for virtualized filesystem
-    //Keep this one at the end.
-    // It is extremely likely that the other checks give it away and this file is usually long.
+    // Check for VirtIO filesystem
+    //Keep this one at the end, It is extremely likely that the other checks give it away and this file is usually long.
     if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/mounts"))).find(std::string(OBFUSCATE("/dev/vda"))) != std::string::npos)
         return 1;
     return 0;
