@@ -656,7 +656,7 @@ bool tuxID::isClientTampering() {
     //Detect SDL2 SwapWindow Hook.
     //Requires "tuxID::executedFirst" to be ran directly after SDL2 is initialized in your project.
     if (maps.find(OBFUSCATE("libSDL2-2.0.so.0")) && swapWindowAddress != NULL) {
-        if (swapWindowAddress != relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL, "SDL_GL_SwapWindow")) + 2)) {
+        if (swapWindowAddress != relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL,OBFUSCATE("SDL_GL_SwapWindow"))) + 2)) {
             dlclose(libSDL);
             return 1;
         }
