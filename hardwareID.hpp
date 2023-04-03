@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <vector>
+#include <dlfcn.h>
 
 
 
@@ -227,6 +228,7 @@ namespace encryption {
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
+#include <dlfcn.h>
 
 // Public domain sha256 implementation based on fips180-3
 struct sha256 {
@@ -550,19 +552,26 @@ static std::string encrypt(const std::string str)
     std::vector<std::string> getBlockDevices();
     bool getIsLikelyVirtualMachine();
     bool getIsDefinitelyVirtualMachine();
-    bool isKernelTampering();
+    bool isClientTampering();
     bool isVirtualMachine();
     bool isDebuggerAttached();
     bool isSuperUser();
     bool isLDPreload();
+    void executedFirst();
     std::string getMotherboardVendor();
     std::string getVMType();
 }
 
 #pragma endregion
 
-
 #pragma region HardwareID Methods
+uintptr_t swapWindowAddress = NULL;
+void* libSDL = NULL;
+
+template <typename T>
+static constexpr auto relativeToAbsolute(std::uintptr_t address) noexcept {
+    return (T)(address + 4 + *reinterpret_cast<std::int32_t*>(address));
+}
 tuxID::HardwareProfile tuxID::getCurrentHardwareProfile() {
     tuxID::HardwareProfile profile;
     std::vector<std::string> diskSerialCodes = getDiskSerialCodes();
@@ -572,10 +581,14 @@ tuxID::HardwareProfile tuxID::getCurrentHardwareProfile() {
     profile.diskSerialCodeHashes = diskSerialCodes;
     profile.isSuperUserHash = isSuperUser();
 }
-
-std::string tuxID::getVMType()
-{
-    return tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name")));
+std::string tuxID::getVMType() {
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("KVM")))
+        return std::string(OBFUSCATE("KVM"));
+    if(tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("VirtualBox")))
+        return std::string(OBFUSCATE("VirtualBox"));
+    if(tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))).find(OBFUSCATE("VMware")) != std::string::npos)
+        return std::string(OBFUSCATE("VMware"));
+    return std::string(OBFUSCATE("Unknown"));
 }
 
 std::string tuxID::getMotherboardVendor()
@@ -596,6 +609,11 @@ bool tuxID::isLDPreload() {
     return 0;
 }
 
+void tuxID:: executedFirst() {
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/maps"))).find(OBFUSCATE("libSDL2-2.0.sp.0")) != std::string::npos) {
+        swapWindowAddress = relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL, "SDL_GL_SwapWindow")) + 2);
+    }
+}
 std::vector<std::string> tuxID::getBlockDevices() {
     std::vector<std::string> array;
     for (const auto blockDevice: std::filesystem::directory_iterator(std::string(OBFUSCATE("/dev/disk/by-path")))) {
@@ -615,19 +633,34 @@ std::vector<std::string> tuxID::getBlockDevices() {
         return std::vector<std::string>{std::string(OBFUSCATE("NULL"))};
     return array;
 }
-bool tuxID::isKernelTampering() {
-    //TODO Check dmesg for outputs found within LWSS Cartographer and LWSS tracerhid.
-    std::string modules = tuxID::getFileContents(std::string(OBFUSCATE("/proc/modules")));
 
+bool tuxID::isClientTampering() {
+    std::string modules = tuxID::getFileContents(std::string(OBFUSCATE("/proc/modules")));
+    std::string maps = tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/maps")));
+    if (maps.find("libSDL2-2.0.so.0"))
+        libSDL = dlopen("libSDL2-2.0.so.0", RTLD_LAZY | RTLD_NOLOAD);
     //LWSS Cartographer
     if (std::ifstream(std::string(OBFUSCATE("/proc/cartographer"))))
         return 1;
-    if(modules.find(std::string(OBFUSCATE("cartographer"))) != std::string::npos)
+    if (modules.find(std::string(OBFUSCATE("cartographer"))) != std::string::npos)
         return 1;
 
     //LWSS Tracerhid
-    if(modules.find(std::string(OBFUSCATE("tracerhid"))) != std::string::npos)
+    if (modules.find(std::string(OBFUSCATE("tracerhid"))) != std::string::npos)
         return 1;
+
+    //vkBasalt, A ReShade implementation for GNU/Linux.
+    if (maps.find(std::string(OBFUSCATE("vkbasalt.so"))) != std::string::npos)
+        return 1;
+
+    //Detect SDL2 SwapWindow Hook.
+    //Requires "tuxID::executedFirst" to be ran directly after SDL2 is initialized in your project.
+    if (maps.find(OBFUSCATE("libSDL2-2.0.so.0")) && swapWindowAddress != NULL) {
+        if (swapWindowAddress != relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL, "SDL_GL_SwapWindow")) + 2)) {
+            dlclose(libSDL);
+            return 1;
+        }
+    }
     return 0;
 }
 //Read entire file into std::string and return
@@ -635,18 +668,18 @@ std::string tuxID::getFileContents(const std::string string) {
     size_t pos;
     std::string content;
     std::ifstream file(string);
-    if(file){
+    if (file) {
         std::ostringstream stringStream;
         stringStream << file.rdbuf();
         content = stringStream.str();
 
         // The /sys/devices files have blank areas at the bottom!!!!
-        while ((pos= content.find(OBFUSCATE("\n"), 0)) != std::string::npos) {
+        while ((pos = content.find(OBFUSCATE("\n"), 0)) != std::string::npos) {
             content.erase(pos, 1);
         }
         return content;
     }
-    return NULL;
+    return std::string(OBFUSCATE("NULL"));
 }
 
 bool tuxID::isDebuggerAttached() {
