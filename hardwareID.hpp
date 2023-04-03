@@ -250,7 +250,10 @@ std::vector<std::string> tuxID::getBlockDevices() {
         if(blockDevice.is_block_file()) {
             array.push_back(blockDevice.path());
             for (int i = 0; i < array.size(); i++) {
-                if((array[i]).find(std::string(OBFUSCATE("-part"))) != std::string::npos || (array[i]).find(std::string(OBFUSCATE("virtio"))) != std::string::npos) {
+                //TODO gather data on external devices separately.
+                if((array[i]).find(std::string(OBFUSCATE("-part"))) != std::string::npos ||
+                (array[i]).find(std::string(OBFUSCATE("virtio"))) != std::string::npos ||
+                (array[i]).find(std::string(OBFUSCATE("-usb"))) != std::string::npos) {
                     array.erase(array.begin()+i);
                 }
             }
@@ -342,10 +345,11 @@ std::vector<std::string> tuxID::getDiskSerialCodes()  {
             entry = udev_list_entry_get_next(entry);
         }
         array.push_back(std::string(udev_list_entry_get_value(entry)));
-        array.erase( unique( array.begin(), array.end()), array.end());
     }
     if(array.size() == 0 || array[0] == std::string(OBFUSCATE("NULL")))
         return std::vector<std::string>{"NULL"};
+    sort(array.begin(), array.end());
+    array.erase( unique( array.begin(), array.end()), array.end());
     return array;
 }
 
