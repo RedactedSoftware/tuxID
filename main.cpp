@@ -23,5 +23,6 @@ int main()
         std::cout << std::string (OBFUSCATE("Virtual Machine Type: VMWare")) << std::endl;
     std::cout << OBFUSCATE("Debugger Attached: ") << tuxID::isDebuggerAttached() << std::endl;
     std::cout << OBFUSCATE("LD_PRELOAD: ") << tuxID::isLDPreload() << std::endl;
+    std::cout << OBFUSCATE("Kernel Tampering: ") << tuxID::isKernelTampering() << std::endl;
    return 0;
 }
