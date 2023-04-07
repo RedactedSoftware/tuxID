@@ -610,7 +610,7 @@ bool tuxID::isLDPreload() {
 }
 
 void tuxID:: executedFirst() {
-    if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/maps"))).find(OBFUSCATE("libSDL2-2.0.sp.0")) != std::string::npos) {
+    if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/maps"))).find(OBFUSCATE("libSDL2-2.0.so.0")) != std::string::npos) {
         swapWindowAddress = relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL, "SDL_GL_SwapWindow")) + 2);
     }
 }
