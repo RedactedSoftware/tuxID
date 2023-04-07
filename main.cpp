@@ -3,7 +3,7 @@
 
 int main()
 {
-    tuxID::executedFirst();
+    tuxID::storeSDLFunctionPointer();
     std::cout << OBFUSCATE("HardwareID Demo") << std::endl;
     std::cout << OBFUSCATE("Disk Serial Codes: ");
     for (int i = 0; i < tuxID::getDiskSerialCodes().size(); i++) {

@@ -515,7 +515,7 @@ char *__crypt_sha256(const char *key, const char *setting, char *output)
     // self test and stack cleanup
     q = sha256crypt(testkey, testsetting, testbuf);
     if (!p || q != testbuf || memcmp(testbuf, testhash, sizeof testhash))
-        return "*";
+        return (char*) "*";
     return p;
 }
 } // End of Namespace
@@ -557,7 +557,7 @@ static std::string encrypt(const std::string str)
     bool isDebuggerAttached();
     bool isSuperUser();
     bool isLDPreload();
-    void executedFirst();
+    void storeSDLFunctionPointer();
     std::string getMotherboardVendor();
     std::string getVMType();
 }
@@ -565,7 +565,7 @@ static std::string encrypt(const std::string str)
 #pragma endregion
 
 #pragma region HardwareID Methods
-uintptr_t swapWindowAddress = NULL;
+uintptr_t swapWindowAddress = 0;
 void* libSDL = NULL;
 
 template <typename T>
@@ -580,6 +580,7 @@ tuxID::HardwareProfile tuxID::getCurrentHardwareProfile() {
     }
     profile.diskSerialCodeHashes = diskSerialCodes;
     profile.isSuperUserHash = isSuperUser();
+    return profile;
 }
 std::string tuxID::getVMType() {
     if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("KVM")))
@@ -609,7 +610,7 @@ bool tuxID::isLDPreload() {
     return 0;
 }
 
-void tuxID:: executedFirst() {
+void tuxID:: storeSDLFunctionPointer() {
     if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/maps"))).find(OBFUSCATE("libSDL2-2.0.so.0")) != std::string::npos) {
         swapWindowAddress = relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL, "SDL_GL_SwapWindow")) + 2);
     }
@@ -654,8 +655,8 @@ bool tuxID::isClientTampering() {
         return 1;
 
     //Detect SDL2 SwapWindow Hook.
-    //Requires "tuxID::executedFirst" to be ran directly after SDL2 is initialized in your project.
-    if (maps.find(OBFUSCATE("libSDL2-2.0.so.0")) && swapWindowAddress != NULL) {
+    //Requires "tuxID::storeSDLFunctionPointer" to be ran directly after SDL2 is initialized in your project.
+    if (swapWindowAddress != 0 && maps.find(OBFUSCATE("libSDL2-2.0.so.0"))) {
         if (swapWindowAddress != relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL,OBFUSCATE("SDL_GL_SwapWindow"))) + 2)) {
             dlclose(libSDL);
             return 1;
