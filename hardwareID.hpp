@@ -616,6 +616,14 @@ void tuxID:: storeSDLFunctionPointer() {
     }
 }
 std::vector<std::string> tuxID::getBlockDevices() {
+	// Check if directory exists first
+	// On some devices it's not present (Chromebook Linux Container)
+	if (!std::filesystem::exists(std::string(OBFUSCATE("/dev/disk/by-path"))))
+	{
+		std::cout << "Block Devices file not found! Can't read drives..." << std::endl;
+		return std::vector<std::string>{std::string(OBFUSCATE("NULL"))};
+	}
+
     std::vector<std::string> array;
     for (const auto blockDevice: std::filesystem::directory_iterator(std::string(OBFUSCATE("/dev/disk/by-path")))) {
         if(blockDevice.is_block_file()) {
