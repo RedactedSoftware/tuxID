@@ -19,7 +19,7 @@
 // Further Considerations: hardware changes slowly over time.
 
 // LICENSE //
-// MIT
+// PUBLIC DOMAIN
 
 // SAMPLES //
 #pragma once
