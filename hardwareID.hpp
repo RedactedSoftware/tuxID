@@ -554,7 +554,8 @@ static std::string encrypt(const std::string str)
     bool getIsDefinitelyVirtualMachine();
     bool isClientTampering();
     bool isVirtualMachine();
-    bool isDebuggerAttached();
+    std::vector<int> isDebuggerAttached();
+    std::string getProcessName(int pid);
     bool isSuperUser();
     bool isLDPreload();
     void storeSDLFunctionPointer();
@@ -600,14 +601,14 @@ std::string tuxID::getMotherboardVendor()
 
 bool tuxID::isSuperUser() {
     if (getuid() == 0)
-        return 1;
-    return 0;
+        return true;
+    return false;
 }
 
 bool tuxID::isLDPreload() {
     if(std::getenv(OBFUSCATE("LD_PRELOAD")))
-        return 1;
-    return 0;
+        return true;
+    return false;
 }
 
 void tuxID:: storeSDLFunctionPointer() {
@@ -642,27 +643,27 @@ bool tuxID::isClientTampering() {
         libSDL = dlopen("libSDL2-2.0.so.0", RTLD_LAZY | RTLD_NOLOAD);
     //LWSS Cartographer
     if (std::ifstream(std::string(OBFUSCATE("/proc/cartographer"))))
-        return 1;
+        return true;
     if (modules.find(std::string(OBFUSCATE("cartographer"))) != std::string::npos)
-        return 1;
+        return true;
 
     //LWSS Tracerhid
     if (modules.find(std::string(OBFUSCATE("tracerhid"))) != std::string::npos)
-        return 1;
+        return true;
 
     //vkBasalt, A ReShade implementation for GNU/Linux.
     if (maps.find(std::string(OBFUSCATE("vkbasalt.so"))) != std::string::npos)
-        return 1;
+        return true;
 
     //Detect SDL2 SwapWindow Hook.
     //Requires "tuxID::storeSDLFunctionPointer" to be ran directly after SDL2 is initialized in your project.
     if (swapWindowAddress != 0 && maps.find(OBFUSCATE("libSDL2-2.0.so.0"))) {
         if (swapWindowAddress != relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL,OBFUSCATE("SDL_GL_SwapWindow"))) + 2)) {
             dlclose(libSDL);
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 //Read entire file into std::string and return
 std::string tuxID::getFileContents(const std::string string) {
@@ -683,10 +684,24 @@ std::string tuxID::getFileContents(const std::string string) {
     return std::string(OBFUSCATE("NULL"));
 }
 
-bool tuxID::isDebuggerAttached() {
+std::string tuxID::getProcessName(int pid) {
     //Check if the TracerPID is not 0, Which would be our own process.
-    //This only works if the debugger was not attached after execution has started.
-    //TODO detect if debugger is attached after execution has started.
+    std::ifstream file("/proc/" + std::to_string(pid) + "/status");
+    //This will fail if the process was created by the root user & we do not have superuser.
+    if(!file.good())
+        return "unknown.";
+    std::string string;
+    std::string name;
+    while (file >> string) {
+        if (string == std::string(OBFUSCATE("Name:"))) {
+            file >> name;
+            std::getline(file, string);
+        }
+        return name;
+    }
+}
+std::vector<int> tuxID::isDebuggerAttached() {
+    //Check if the TracerPID is not 0, Which would be our own process.
     std::ifstream file(OBFUSCATE("/proc/self/status"));
     std::string string;
     while (file >> string) {
@@ -694,11 +709,11 @@ bool tuxID::isDebuggerAttached() {
             int pid;
             file >> pid;
             if (pid != 0)
-                return 1;
+                return std::vector<int>{true,pid};
         }
         std::getline(file, string);
     }
-    return 0;
+    return std::vector<int>{false};
 }
 
 std::vector<std::string> tuxID::getDiskSerialCodes()  {
@@ -747,42 +762,42 @@ bool tuxID::isVirtualMachine() {
     // Check for Virtio Module
     // https://developer.ibm.com/articles/l-virtio/
     if (modules.find(std::string(OBFUSCATE("virtio"))) != std::string::npos)
-        return 1;
+        return true;
     // Check for VirtualBox Guest Additions Module
     // https://www.virtualbox.org/manual/UserManual.html#additions-linux
     if (modules.find(std::string(OBFUSCATE("vboxguest"))) != std::string::npos)
-        return 1;
+        return true;
     // Check for Cirrus CI Module
     if (modules.find(std::string(OBFUSCATE("cirrus"))) != std::string::npos)
-        return 1;
+        return true;
     // Check for VirtualBox Video Module
     if (modules.find(std::string(OBFUSCATE("vboxvideo"))) != std::string::npos)
-        return 1;
+        return true;
     // Check if the motherboard name is "KVM"
     if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("KVM")))
-        return 1;
+        return true;
     // Check if the motherboard name is "VirtualBox"
     if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))) == std::string(OBFUSCATE("VirtualBox")))
-        return 1;
+        return true;
     //Check if the motherboard name contains "VMWare"
     if (tuxID::getFileContents(std::string(OBFUSCATE("/sys/devices/virtual/dmi/id/product_name"))).find(std::string(OBFUSCATE("VMware"))) != std::string::npos)
-        return 1;
+        return true;
     // Check for VMWare Guest Graphics Module
     if (modules.find(std::string(OBFUSCATE("vmwgfx"))) != std::string::npos)
-        return 1;
+        return true;
     //VMWare module which facilitates things like "drag n' drop".
     if (modules.find(std::string(OBFUSCATE("vmw_vsock_virtio_transport_common"))) != std::string::npos)
-        return 1;
+        return true;
     if (modules.find(std::string(OBFUSCATE("vmw_balloon"))) != std::string::npos)
-        return 1;
+        return true;
     //Check if we're inside of a docker container.
     if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/1/sched"))).find(std::string(OBFUSCATE("bash"))) != std::string::npos)
-        return 1;
+        return true;
     // Check for VirtIO filesystem
     //Keep this one at the end, It is extremely likely that the other checks give it away and this file is usually long.
     if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/mounts"))).find(std::string(OBFUSCATE("/dev/vda"))) != std::string::npos)
-        return 1;
-    return 0;
+        return true;
+    return false;
 }
 
 #pragma endregion
