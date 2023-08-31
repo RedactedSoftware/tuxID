@@ -6,11 +6,12 @@ int main()
     tuxID::storeSDLFunctionPointer();
     std::cout << OBFUSCATE("HardwareID Demo") << std::endl;
     std::cout << OBFUSCATE("Disk Serial Codes: ");
-    for (int i = 0; i < tuxID::getDiskSerialCodes().size(); i++) {
-        std::cout << tuxID::getDiskSerialCodes()[i];
-        if(i < tuxID::getDiskSerialCodes().size() -1)
+	auto serials = tuxID::getDiskSerialCodes();
+    for (int i = 0; i < serials.size(); i++) {
+        std::cout << serials[i];
+        if(i < serials.size() -1)
             std::cout << OBFUSCATE(", ");
-        if(i == tuxID::getDiskSerialCodes().size() -1)
+        if(i == serials.size() -1)
             std::cout << std::endl;
     }
     std::cout << OBFUSCATE("Motherboard Vendor: ") << tuxID::getMotherboardVendor() << std::endl;
