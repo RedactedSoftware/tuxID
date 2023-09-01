@@ -614,6 +614,7 @@ bool tuxID::isLDPreload() {
 void tuxID:: storeSDLFunctionPointer() {
     if (tuxID::getFileContents(std::string(OBFUSCATE("/proc/self/maps"))).find(OBFUSCATE("libSDL2-2.0.so.0")) != std::string::npos) {
         swapWindowAddress = relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL, "SDL_GL_SwapWindow")) + 2);
+        dlclose(libSDL);
     }
 }
 std::vector<std::string> tuxID::getBlockDevices() {
